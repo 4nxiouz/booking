@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>จองคิวดูดวง</title>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root { --bg:#160f2b; --card:#221840; --card2:#2c2050; --gold:#e8c170; --text:#f3eefc; --muted:#a89cc8; --line:#3a2d63; --ok:#5fd39a; --warn:#f0b54a; --bad:#ef6b7b; }
+  * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  body { font-family:'Prompt',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; padding-bottom:40px; }
+  header { padding:22px 18px 10px; text-align:center; }
+  header h1 { font-size:20px; font-weight:500; color:var(--gold); }
+  header p { font-size:13px; color:var(--muted); margin-top:4px; }
+  .tabs { display:flex; margin:8px 16px 16px; background:var(--card); border-radius:12px; padding:4px; }
+  .tab { flex:1; text-align:center; padding:9px; border-radius:9px; font-size:14px; color:var(--muted); cursor:pointer; }
+  .tab.on { background:var(--card2); color:var(--gold); }
+  .wrap { padding:0 16px; }
+  .sec { margin-bottom:18px; }
+  .sec h2 { font-size:14px; font-weight:500; color:var(--muted); margin-bottom:8px; }
+  .pkgs { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .pkg { background:var(--card); border:1.5px solid var(--line); border-radius:14px; padding:16px 10px; text-align:center; cursor:pointer; }
+  .pkg.on { border-color:var(--gold); background:var(--card2); }
+  .pkg .n { font-size:15px; }
+  .pkg .p { font-size:22px; color:var(--gold); font-weight:600; margin-top:4px; }
+  .dates { display:flex; gap:8px; overflow-x:auto; padding-bottom:6px; }
+  .date { flex:0 0 auto; width:64px; background:var(--card); border:1.5px solid var(--line); border-radius:12px; padding:8px 0; text-align:center; cursor:pointer; }
+  .date .d1, .date .d3 { font-size:12px; color:var(--muted); }
+  .date .d2 { font-size:20px; font-weight:500; }
+  .date.on { border-color:var(--gold); background:var(--card2); }
+  .times { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .time { background:var(--card); border:1.5px solid var(--line); border-radius:10px; padding:10px 0; text-align:center; font-size:14px; cursor:pointer; }
+  .time.on { border-color:var(--gold); background:var(--card2); color:var(--gold); }
+  .empty { color:var(--muted); font-size:14px; text-align:center; padding:18px; background:var(--card); border-radius:12px; flex:1; }
+  .btn { display:block; width:100%; border:0; border-radius:12px; padding:14px; font-family:inherit; font-size:16px; font-weight:500; background:var(--gold); color:#2a1c00; cursor:pointer; }
+  .btn:disabled { opacity:.4; }
+  .btn.ghost { background:transparent; color:var(--muted); border:1px solid var(--line); font-size:14px; padding:11px; margin-top:10px; }
+  .card { background:var(--card); border-radius:14px; padding:16px; margin-bottom:12px; }
+  .row { display:flex; justify-content:space-between; gap:10px; font-size:14px; padding:4px 0; }
+  .row span:first-child { color:var(--muted); flex-shrink:0; }
+  .row span:last-child { text-align:right; }
+  .amt { text-align:center; font-size:30px; font-weight:600; color:var(--gold); margin:10px 0 4px; }
+  .qr { background:#fff; border-radius:12px; padding:14px; width:fit-content; margin:10px auto; }
+  .hint { text-align:center; font-size:12px; color:var(--muted); }
+  .timer { text-align:center; font-size:13px; color:var(--warn); margin-top:8px; }
+  .upload { display:block; border:1.5px dashed var(--line); border-radius:12px; padding:18px; text-align:center; color:var(--muted); font-size:14px; cursor:pointer; margin:12px 0; }
+  .upload img { max-width:100%; max-height:260px; border-radius:8px; display:block; margin:0 auto; }
+  .badge { display:inline-block; font-size:12px; padding:3px 10px; border-radius:20px; }
+  .b-hold { background:#4a3a12; color:var(--warn); }
+  .b-pending { background:#3b2f63; color:#c9b8ff; }
+  .b-confirmed { background:#123d2c; color:var(--ok); }
+  .b-rejected { background:#4a1d26; color:var(--bad); }
+  .center { text-align:center; }
+  .big { font-size:44px; margin:10px 0; }
+  .loading { position:fixed; inset:0; background:rgba(10,6,22,.7); display:none; align-items:center; justify-content:center; z-index:9; }
+  .loading.show { display:flex; }
+  .spin { width:38px; height:38px; border:3px solid var(--line); border-top-color:var(--gold); border-radius:50%; animation:s .8s linear infinite; }
+  @keyframes s { to { transform:rotate(360deg); } }
+  .toast { position:fixed; left:16px; right:16px; bottom:20px; background:var(--bad); color:#fff; padding:12px 14px; border-radius:10px; font-size:14px; display:none; z-index:10; }
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🔮 จองคิวดูดวง</h1>
+  <p>เลือกเวลาที่สะดวก แล้วโอนเงินเพื่อยืนยันคิว</p>
+</header>
+<div class="tabs">
+  <div class="tab on" data-tab="book">จองคิว</div>
+  <div class="tab" data-tab="my">คิวของฉัน</div>
+</div>
+
+<div class="wrap">
+  <!-- เลือกคิว -->
+  <div id="v-book">
+    <div class="sec"><h2>1. เลือกแพ็กเกจ</h2><div class="pkgs" id="pkgs"></div></div>
+    <div class="sec hidden" id="sec-date"><h2>2. เลือกวัน</h2><div class="dates" id="dates"></div></div>
+    <div class="sec hidden" id="sec-time"><h2>3. เลือกเวลา</h2><div class="times" id="times"></div></div>
+    <div class="sec hidden" id="sec-sum">
+      <div class="card" id="sum"></div>
+      <button class="btn" id="btn-hold">จองและชำระเงิน</button>
+    </div>
+  </div>
+
+  <!-- ชำระเงิน -->
+  <div id="v-pay" class="hidden">
+    <div class="card">
+      <div class="row"><span>วัน</span><span id="p-date"></span></div>
+      <div class="row"><span>เวลา</span><span id="p-time"></span></div>
+      <div class="row"><span>แพ็กเกจ</span><span id="p-pkg"></span></div>
+      <div class="amt" id="p-amt"></div>
+      <div class="qr" id="qr"></div>
+      <div class="hint">สแกนด้วยแอปธนาคาร หรือแคปหน้าจอไปสแกนในแอป</div>
+      <div class="timer" id="timer"></div>
+    </div>
+    <label class="upload">
+      <input type="file" accept="image/*" id="file" hidden>
+      <span id="up-txt">📎 แตะเพื่อแนบสลิปโอนเงิน</span>
+    </label>
+    <button class="btn" id="btn-slip" disabled>ส่งสลิป</button>
+    <button class="btn ghost" id="btn-cancel">ยกเลิกการจองนี้</button>
+  </div>
+
+  <!-- ส่งสลิปแล้ว -->
+  <div id="v-done" class="hidden">
+    <div class="card center">
+      <div class="big">🙏</div>
+      <div style="font-size:18px">ส่งสลิปเรียบร้อย</div>
+      <p style="color:var(--muted);font-size:14px;margin-top:8px">ระบบจะส่งข้อความยืนยันคิวทาง LINE<br>หลังตรวจสอบการโอนเงิน</p>
+    </div>
+    <button class="btn ghost" id="btn-tomy">ดูคิวของฉัน</button>
+  </div>
+
+  <!-- คิวของฉัน -->
+  <div id="v-my" class="hidden"><div id="mylist"></div></div>
+</div>
+
+<div class="loading" id="loading"><div class="spin"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ================== ตั้งค่า (แก้ 2 บรรทัดนี้) ==================
+const LIFF_ID = '2012630257-vDB1gjjV';
+const API_URL = 'https://script.google.com/macros/s/AKfycbw1YwKdsQbsW5WvjY3q5OogDMmWat631BeDAKWXBxe7_mCkbxl5jVaX8m_xo2O9Y-vo/exec';
+// ==============================================================
+
+const $ = id => document.getElementById(id);
+let idToken = '', cfg = null, cur = null, timerId = null, slipB64 = '';
+const st = { pkg: null, date: null, time: null, avail: [] };
+
+function loading(on) { $('loading').classList.toggle('show', on); }
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.style.display = 'block';
+  clearTimeout(t._t); t._t = setTimeout(() => t.style.display = 'none', 3500);
+}
+async function api(action, data = {}) {
+  const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ action, idToken }, data)) });
+  const j = await res.json();
+  if (!j.ok) throw new Error(j.error);
+  return j.data;
+}
+function show(view) {
+  ['v-book', 'v-pay', 'v-done', 'v-my'].forEach(v => $(v).classList.toggle('hidden', v !== view));
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', (view === 'v-my') === (t.dataset.tab === 'my')));
+  window.scrollTo(0, 0);
+}
+function addMin(t, m) {
+  const [h, mm] = t.split(':').map(Number), x = h * 60 + mm + m;
+  return String(Math.floor(x / 60)).padStart(2, '0') + ':' + String(x % 60).padStart(2, '0');
+}
+
+// ---------- เริ่มต้น ----------
+(async function init() {
+  loading(true);
+  try {
+    await liff.init({ liffId: LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    idToken = liff.getIDToken();
+    cfg = await api('config');
+    renderPkgs();
+    if (new URLSearchParams(location.search).get('tab') === 'my') await openMy();
+  } catch (e) {
+    toast(e.message);
+  } finally {
+    loading(false);
+  }
+})();
+
+// ---------- เลือกแพ็กเกจ / วัน / เวลา ----------
+function renderPkgs() {
+  $('pkgs').innerHTML = cfg.packages.map(p =>
+    `<div class="pkg" data-k="${p.key}"><div class="n">${p.name}</div><div class="p">${p.price.toLocaleString()} ฿</div></div>`).join('');
+  document.querySelectorAll('.pkg').forEach(el => el.onclick = () => pickPkg(el.dataset.k));
+}
+async function pickPkg(k) {
+  st.pkg = k; st.date = null; st.time = null;
+  document.querySelectorAll('.pkg').forEach(el => el.classList.toggle('on', el.dataset.k === k));
+  $('sec-time').classList.add('hidden');
+  $('sec-sum').classList.add('hidden');
+  loading(true);
+  try {
+    st.avail = await api('availability', { package: k });
+    renderDates();
+  } catch (e) {
+    toast(e.message);
+  } finally {
+    loading(false);
+  }
+}
+function renderDates() {
+  $('sec-date').classList.remove('hidden');
+  if (!st.avail.length) {
+    $('dates').innerHTML = '<div class="empty">ยังไม่มีวันว่างสำหรับแพ็กเกจนี้</div>';
+    return;
+  }
+  $('dates').innerHTML = st.avail.map(d =>
+    `<div class="date" data-d="${d.date}"><div class="d1">${d.dow}</div><div class="d2">${d.day}</div><div class="d3">${d.mon}</div></div>`).join('');
+  document.querySelectorAll('.date').forEach(el => el.onclick = () => pickDate(el.dataset.d));
+}
+function pickDate(d) {
+  st.date = d; st.time = null;
+  document.querySelectorAll('.date').forEach(el => el.classList.toggle('on', el.dataset.d === d));
+  const day = st.avail.find(x => x.date === d);
+  $('sec-time').classList.remove('hidden');
+  $('sec-sum').classList.add('hidden');
+  $('times').innerHTML = day.times.map(t => `<div class="time" data-t="${t}">${t}</div>`).join('');
+  document.querySelectorAll('.time').forEach(el => el.onclick = () => pickTime(el.dataset.t));
+}
+function pickTime(t) {
+  st.time = t;
+  document.querySelectorAll('.time').forEach(el => el.classList.toggle('on', el.dataset.t === t));
+  const p = cfg.packages.find(x => x.key === st.pkg);
+  const day = st.avail.find(x => x.date === st.date);
+  $('sum').innerHTML = `
+    <div class="row"><span>วัน</span><span>${day.label}</span></div>
+    <div class="row"><span>เวลา</span><span>${t}–${addMin(t, p.minutes)} น.</span></div>
+    <div class="row"><span>แพ็กเกจ</span><span>${p.name}</span></div>
+    <div class="row"><span>ยอดชำระ</span><span style="color:var(--gold)">${p.price.toLocaleString()} บาท</span></div>`;
+  $('sec-sum').classList.remove('hidden');
+  $('sec-sum').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ---------- จอง (ล็อกคิว) ----------
+$('btn-hold').onclick = async () => {
+  loading(true);
+  let r;
+  try {
+    r = await api('hold', { package: st.pkg, date: st.date, start: st.time });
+  } catch (e) {
+    loading(false);
+    toast(e.message);
+    return pickPkg(st.pkg); // โหลดเวลาว่างใหม่
+  }
+  loading(false);
+  openPay(r.booking, r.qr);
+};
+
+// ---------- หน้าชำระเงิน ----------
+function openPay(b, qr) {
+  cur = b; slipB64 = '';
+  $('p-date').textContent = b.dateLabel;
+  $('p-time').textContent = `${b.start}–${b.end} น.`;
+  $('p-pkg').textContent = b.packageName;
+  $('p-amt').textContent = b.amount.toLocaleString() + ' บาท';
+  $('qr').innerHTML = '';
+  new QRCode($('qr'), { text: qr, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M });
+  $('up-txt').innerHTML = '📎 แตะเพื่อแนบสลิปโอนเงิน';
+  $('btn-slip').disabled = true;
+  $('file').value = '';
+  clearInterval(timerId);
+  const tick = () => {
+    const s = Math.max(0, Math.floor((b.holdUntil - Date.now()) / 1000));
+    $('timer').textContent = s > 0
+      ? `กรุณาโอนและส่งสลิปภายใน ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} นาที`
+      : 'หมดเวลาชำระเงินแล้ว กรุณาจองใหม่';
+    if (s <= 0) { clearInterval(timerId); $('btn-slip').disabled = true; }
+  };
+  tick();
+  timerId = setInterval(tick, 1000);
+  show('v-pay');
+}
+
+$('file').onchange = async e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  loading(true);
+  try {
+    slipB64 = await compress(f);
+    $('up-txt').innerHTML = `<img src="data:image/jpeg;base64,${slipB64}">`;
+    $('btn-slip').disabled = Date.now() > cur.holdUntil + 60000;
+  } catch (_) {
+    toast('อ่านรูปไม่ได้ ลองเลือกใหม่อีกครั้ง');
+  } finally {
+    loading(false);
+  }
+};
+
+$('btn-slip').onclick = async () => {
+  if (!slipB64) return;
+  loading(true);
+  try {
+    const r = await api('uploadSlip', { bookingId: cur.bookingId, base64: slipB64, mime: 'image/jpeg' });
+    clearInterval(timerId);
+    await notifyChat(r.booking);
+    show('v-done');
+  } catch (e) {
+    toast(e.message);
+  } finally {
+    loading(false);
+  }
+};
+
+// ส่งข้อความเข้าแชท OA ในนามลูกค้า → แอป LINE OA เด้งแจ้งเตือนเจ้าของร้าน (ไม่กินโควตา)
+async function notifyChat(b) {
+  try {
+    if (!liff.isInClient()) return;
+    await liff.sendMessages([{
+      type: 'text',
+      text: `📌 จองคิวดูดวง\n📅 ${b.dateLabel}\n⏰ ${b.start}–${b.end} น. (${b.packageName})\n💰 ${b.amount.toLocaleString()} บาท\n🔖 ${b.bookingId}\nส่งสลิปแล้ว รอตรวจสอบ`,
+    }]);
+  } catch (_) { /* เปิดนอกห้องแชท ส่งไม่ได้ก็ข้ามไป */ }
+}
+
+$('btn-cancel').onclick = async () => {
+  if (!confirm('ยกเลิกการจองนี้?')) return;
+  loading(true);
+  try {
+    await api('cancel', { bookingId: cur.bookingId });
+    clearInterval(timerId);
+    show('v-book');
+    if (st.pkg) pickPkg(st.pkg);
+  } catch (e) {
+    toast(e.message);
+  } finally {
+    loading(false);
+  }
+};
+
+// ---------- คิวของฉัน ----------
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  if (t.dataset.tab === 'my') return openMy();
+  show('v-book');
+  if (st.pkg) pickPkg(st.pkg);
+});
+$('btn-tomy').onclick = openMy;
+
+async function openMy() {
+  show('v-my');
+  $('mylist').innerHTML = '';
+  loading(true);
+  try {
+    const list = await api('myBookings');
+    if (!list.length) {
+      $('mylist').innerHTML = '<div class="empty">ยังไม่มีรายการจอง</div>';
+      return;
+    }
+    $('mylist').innerHTML = list.map((b, i) => `
+      <div class="card">
+        <div class="row"><span>${b.bookingId}</span><span class="badge b-${b.status}">${b.statusLabel}</span></div>
+        <div style="font-size:15px;margin-top:6px">${b.dateLabel}</div>
+        <div style="color:var(--muted);font-size:14px">${b.start}–${b.end} น. · ${b.packageName} · ${b.amount.toLocaleString()} บาท</div>
+        ${b.status === 'hold' ? `<button class="btn" style="margin-top:12px" data-i="${i}">ไปชำระเงิน</button>` : ''}
+      </div>`).join('');
+    $('mylist').querySelectorAll('button[data-i]').forEach(btn => btn.onclick = () => {
+      const b = list[btn.dataset.i];
+      openPay(b, b.qr);
+    });
+  } catch (e) {
+    toast(e.message);
+  } finally {
+    loading(false);
+  }
+}
+
+// ย่อรูปสลิปก่อนส่ง (ส่งเร็วขึ้น)
+function compress(file) {
+  return new Promise((res, rej) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const s = Math.min(1, 1400 / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * s);
+      c.height = Math.round(img.height * s);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      res(c.toDataURL('image/jpeg', 0.85).split(',')[1]);
+    };
+    img.onerror = rej;
+    img.src = url;
+  });
+}
+</script>
+</body>
+</html>
